@@ -1,0 +1,48 @@
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: mapup-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: mapup_user
+      POSTGRES_PASSWORD: mapup_password
+      POSTGRES_DB: mapup_db
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mapup_user -d mapup_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: mapup-backend
+    restart: unless-stopped
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      DB_HOST: postgres
+      DB_USER: mapup_user
+      DB_PASSWORD: mapup_password
+      DB_NAME: mapup_db
+      DB_PORT: 5432
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
